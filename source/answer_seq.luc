@@ -1,0 +1,32 @@
+module answer_seq (
+    input clk,  // clock
+    input rst,  // reset
+    output out[16]
+  ) {
+  
+  .clk(clk){
+   edge_detector edge_detector_counter; 
+   dff seed[16]; //don't reset the seed because we don't want the same random number each time we press reset
+    
+  .rst(rst){ 
+     counter slowerclock(#SIZE(1), #DIV(26));
+     pn_gen rand_answer;
+    }
+  }
+
+  always {
+  
+    out = rand_answer.num[15:0];
+    rand_answer.seed = seed.q;
+    
+    edge_detector_counter.in = slowerclock.value;
+    rand_answer.next = edge_detector_counter.out; //updates answer sequence
+    
+    if (edge_detector_counter.out){
+    
+      seed.d = seed.q + 1; //changing the seed value every time a rising edge is detected
+      
+    }
+      
+  }
+}

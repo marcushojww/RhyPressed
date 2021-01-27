@@ -1,0 +1,301 @@
+module main_fsm (
+    input clk,  // clock
+    input rst,  // reset
+    input regA[16], // Input A from Regfile  
+    input regB[16], // Input B from Regfile 
+    input randomGenSequence[16],
+    input buttons[3],
+    input counter_input[8], // To be used as the 'slowclock' that will come from au_top 
+    output start_clock_signal,
+    output write_address [4], // Write Address for where to write in the REGFILE 
+    output write_data[16], // Data to be written in to the regfile 
+    output we,
+    output read_address_a[4],
+    output read_address_b[4],
+    output out[24] 
+  ) {
+  
+  /* TODO:
+     - Implement Button Input that uses edge detector (?) 
+     - How does the edge detector work with the slow clock of the FSM ? 
+     - Load answers from REGFILE 
+     - Implement proper OUTPUTS for the FSM 
+     - Implement Lives? If yes can implement in CHECK_ANS 
+     - Implement score system 
+     - Need a DFF to store button input 
+  */
+  
+  // Temporary Pseudovariables 
+  const ANS_FROM_REGFILE = 1;
+  
+  // Initiate slow clock for a counter 
+  const CLKSPEED = 26;
+  const SLOWCLOCK_SIZE = 27;
+  
+  
+  const Y_VALUES = {8h0C, 8h0B, 8h0A, 8h09, 8h08, 8h07, 8h06, 8h05, 8h04,8h03, 8h02, 8h01, 8h00};
+
+  
+ 
+  
+  dff answer_storer[2](#INIT(0), .clk(clk), .rst(rst));
+  
+ 
+  
+  /* 12 FSM states
+     START
+     LOAD_ANS
+     CHECK_BTN_INIT
+     DISPLAY_ANS
+     
+     IDLE
+     
+     CHECK_ANS
+     
+     HIT
+     INCREASE_SCORE
+     INCREASE_COUNTER (BACK TO IDLE)
+     
+     GAME_OVER (BACK TO START ON RESET)  
+  */
+  
+  // Create FSM that is binded to FAST clock 
+  fsm main_fsm(.clk(clk),
+   .rst(rst)) = {START, LOAD_ANS, CHECK_BTN_INIT, DISPLAY_ANS, 
+                                        IDLE,
+                                        CHECK_ANS, BRANCH_CHECK, HIT, INCREASE_SCORE, 
+                                        INCREASE_COUNTER, GAME_OVER};
+
+  always {
+      // Assign some random values to the outputs first 
+      write_address = 4d0;
+      write_data = 16d0;
+      we = 1b0;
+      read_address_a = 4d0;
+      read_address_b = 4d0;
+      start_clock_signal = 0;
+    
+    
+    
+    case (main_fsm.q) {
+    
+      //  **** START state  **** 
+      main_fsm.START:
+        
+        out = 8d1;
+        if (buttons[0]) {
+          main_fsm.d = main_fsm.LOAD_ANS;
+        }
+        
+        
+        
+      //  **** LOAD_ANS state  ****
+      // -> Load Answers from REGFILE
+      main_fsm.LOAD_ANS:
+        out[7:0] = 8d2; 
+        out[23:8] = randomGenSequence[15:0];
+        we = 1;
+        write_address = 4d0;
+        write_data = randomGenSequence[15:0]; // au top must feed randomGenSequence to the regfile. 
+        if (buttons[0]) {
+          // !! Need to store the answers somewhere here
+          main_fsm.d = main_fsm.CHECK_BTN_INIT;
+        }
+        
+        
+        
+        
+      // **** CHECK_BTN_INIT state  **** 
+      // -> On Button Press, go to DISPLAY_ANS state
+      main_fsm.CHECK_BTN_INIT:
+        out = 8d3; 
+        // Wrap the below statement in IF statement for button 
+        // if (button == 1) {}
+        
+        if (buttons[0]) {
+          start_clock_signal = 1;
+          main_fsm.d = main_fsm.DISPLAY_ANS;  
+        }
+        
+    
+       
+        
+       
+  
+      // ****  DISPLAY_ANS state **** 
+      // -> Display loaded answers from LOAD_ANS onto LED 
+      main_fsm.DISPLAY_ANS:
+          
+          read_address_a = 4d0;
+          out[23:8] = regA;
+          //out[7:0] = 8d4; 
+          out[7:0] = counter_input; // TESTING: Display on led to check whether counter_input is resetted 
+        
+          if (buttons[0]) {
+         main_fsm.d = main_fsm.IDLE;
+        }
+         
+    
+        
+        
+      //  **** IDLE state  **** 
+      // -> Just wait 
+      // If button press, store the button input and go to CHECK_ANS
+      // If no button press, just go to CHECK_ANS on the slow clock 
+      main_fsm.IDLE:
+      // display ans too 
+         out[7:0] = 8d5;
+         out[23:16] = counter_input;
+         out[15:8] = regA[15:8];
+         if (buttons[0]) {
+          answer_storer.d = b01;
+          main_fsm.d = main_fsm.CHECK_ANS;
+        }   
+        
+        if (buttons[1]) {
+          answer_storer.d = b10;
+          main_fsm.d = main_fsm.CHECK_ANS;
+        }
+        
+        if (buttons[2]) {
+          answer_storer.d = b11;
+          main_fsm.d = main_fsm.CHECK_ANS;
+        }
+        
+        // TODO: This is supposed to be something else !! 
+        if (counter_input == counter_input + 2) {
+          answer_storer.d = b00;
+          main_fsm.d = main_fsm.CHECK_ANS;
+        }
+        
+        
+         // Check the input counter values from the au_top 
+        // AN ARBITRARY VALUE OF 3 IS USED TEMPORARILY
+        
+        //if (counter_input == 3) {
+        //  main_fsm.d = main_fsm.CHECK_ANS; // This is to force the state change 
+        //}
+        
+        // if (button == 1) 
+        // Store ans and change state 
+        //if (buttons[0] | buttons[1] | buttons[2]) {
+        //main_fsm.d = main_fsm.CHECK_ANS;
+        //}
+        
+        
+             
+        
+      //  **** CHECK_ANS state **** 
+      // -> Check Lives 
+      // -> Check answer input (based on button)  
+      main_fsm.CHECK_ANS:
+        out = 8d6;
+         
+        // Answer is in read_address_a == 0 (R0)
+        read_address_a = 4d0; // R0
+        
+        if (answer_storer.q == regA[15:14]) {
+            main_fsm.d = main_fsm.HIT;
+        } 
+        else {
+        // Wrong Case 
+          
+       // First check the current lives left in the LIVES register (R5)
+          // if (regfile.r5 == 1) {main_fsm.d = main_fsm.GAME_OVER; }
+          
+          // If not, means lives just decremented 
+          // Minus lives by altering value in the REGFILE . 
+          // Provide the write_address (R5) and write_data (SUBC  (R5, -1, R5) )
+          // Reflect the lives counter on the 7SEG 
+          // Go back to IDLE state 
+          main_fsm.d = main_fsm.GAME_OVER;
+        }
+        
+        /// Check against answer from REGFILE
+        
+        // Correct Case , this is the one causing it to go to HIT
+        
+          
+        
+        
+        
+          //write_address = d5; 
+      // if (!buttons[0] == ANS_FROM_REGFILE | !buttons[1] == ANS_FROM_REGFILE | !buttons[2] == ANS_FROM_REGFILE) {        
+        //   main_fsm.d = main_fsm.IDLE;                        
+        //}
+        
+      
+        
+        
+        
+     //  **** HIT state (Redundant State, consider removing)  ****
+      main_fsm.HIT:
+      
+          out = 8d7;
+        //if (buttons[0]) {
+        //   main_fsm.d = main_fsm.INCREASE_SCORE; 
+        //}
+        main_fsm.d = main_fsm.INCREASE_SCORE;
+       
+        
+      
+        
+        
+        
+        
+     // **** INCREASE_SCORE state ****
+     // -> Increase player score and reflect    
+     main_fsm.INCREASE_SCORE:
+      out = 8d8;
+        // Increase Score 
+       // if (buttons[0]) {
+        main_fsm.d =  main_fsm.INCREASE_COUNTER;
+       // ADDC( R5, 1, R5)
+      //  main_fsm.d =  main_fsm.INCREASE_COUNTER;
+       // }
+       
+        
+        
+        
+        
+        
+        
+      //  **** INCREASE COUNTER state **** 
+      // -> Counter that is used to reference the ANS_FROM_REGFILE 
+      // -> Might not be necessary, must see Marcus implementation 
+      main_fsm.INCREASE_COUNTER:
+      
+        out = 8d9; 
+        
+        if (counter_input< 8) {
+        // Increase counter
+        main_fsm.d = main_fsm.IDLE;
+        }
+         else {
+        // LOAD A FRESH ANSWER SEQUENCE WHEN THE CLOCK IS 8
+          out[23:8] = randomGenSequence[15:0];
+          we = 1;
+          write_address = 4d0;
+          write_data = randomGenSequence[15:0];
+        }
+         
+        
+        
+      
+     //  **** GAME OVER state  **** 
+     // -> Only can exit to START state when RESET is pressed 
+        
+      main_fsm.GAME_OVER:
+        out = 8d10;
+        
+        if (rst == 1) {
+            main_fsm.d = main_fsm.START;
+        }
+        
+    default:
+      out = 8d1;
+    
+      main_fsm.d = main_fsm.START;
+    }
+  }
+}

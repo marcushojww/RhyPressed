@@ -1,0 +1,226 @@
+module led_clock (
+    input clk,  // clock
+    input rst,  // reset
+    input pointer,
+    input answer[8][24],
+    output led_seq[256][24]
+  ) {
+
+  
+  const A = 40;
+  const B = 41;
+  const C = 42;
+  const D = 43;
+  const E = 44;
+  const F = 45;
+  const G = 46;
+  const H = 47;
+  const I = 48;
+  const J = 49;
+  const K = 50;
+  const L = 51;
+  const M = 52;
+  const N = 53;
+  const O = 54;
+  const P = 55;
+  
+
+  .clk(clk){
+  dff led_colour[256][24];
+  
+  }
+  
+  
+  const LED_SEQUENCE = {  {hFF0000, h000000, h000000, h000000, h000000, h000000, h000000, h000000},
+                          {h000000, hFF0000, h000000, h000000, h000000, h000000, h000000, h000000},
+                          {h000000, h000000, hFF0000, h000000, h000000, h000000, h000000, h000000},
+                          {h000000, h000000, h000000, hFF0000, h000000, h000000, h000000, h000000},
+                          {h000000, h000000, h000000, h000000, hFF0000, h000000, h000000, h000000},
+                          {h000000, h000000, h000000, h000000, h000000, hFF0000, h000000, h000000},
+                          {h000000, h000000, h000000, h000000, h000000, h000000, hFF0000, h000000},
+                          {h000000, h000000, h000000, h000000, h000000, h000000, h000000, hFF0000}  };
+    
+  
+  /*
+  const LEDCOLOR = {h000000, h000000, h000000, h000000, h000000, h000000, h000000, h000000,
+                    h000000, h000000, h000000, h000000, h000000, h000000, h000000, h000000,
+                    h000000, h000000, h000000, h000000, h000000, h000000, h000000, h000000,
+                    h000000, h000000, h000000, h000000, h000000, h000000, h000000, h000000,
+                    h000000, h000000, h000000, h000000, h000000, h000000, h000000, h000000,
+    
+                    h000000, h000000, hFF0000, hFF0000, h000000, hFF0000, h000000, h000000,
+                    h000000, h000000, hFF0000, h000000, hFF0000, hFF0000, h000000, h000000,
+    
+                    h000000, h000000, h000000, h000000, h000000, h000000, h000000, h000000,
+    
+                    h000000, h000000, hFF0000, hFF0000, h000000, hFF0000, h000000, h000000,
+                    h000000, h000000, hFF0000, h000000, hFF0000, hFF0000, h000000, h000000,
+    
+                    h000000, h000000, h000000, h000000, h000000, h000000, h000000, h000000,
+    
+                    h000000, h000000, hFF0000, hFF0000, h000000, hFF0000, h000000, h000000,
+                    h000000, h000000, hFF0000, h000000, hFF0000, hFF0000, h000000, h000000,
+    
+                    h000000, h000000, h000000, h000000, h000000, h000000, h000000, h000000,
+    
+                    h000000, h000000, hFF0000, hFF0000, h000000, hFF0000, h000000, h000000,
+                    h000000, h000000, hFF0000, h000000, hFF0000, hFF0000, h000000, h000000,
+    
+                    h000000, h000000, h000000, h000000, h000000, h000000, h000000, h000000,
+    
+                    h000000, h000000, hFF0000, hFF0000, h000000, hFF0000, h000000, h000000,
+                    h000000, h000000, hFF0000, h000000, hFF0000, hFF0000, h000000, h000000,
+    
+                    h000000, h000000, h000000, h000000, h000000, h000000, h000000, h000000,
+    
+                    h000000, h000000, hFF0000, hFF0000, h000000, hFF0000, h000000, h000000,
+                    h000000, h000000, hFF0000, h000000, hFF0000, hFF0000, h000000, h000000,
+    
+                    h000000, h000000, h000000, h000000, h000000, h000000, h000000, h000000,
+    
+                    h000000, h000000, hFF0000, hFF0000, h000000, hFF0000, h000000, h000000,
+                    h000000, h000000, hFF0000, h000000, hFF0000, hFF0000, h000000, h000000,
+    
+                    h000000, h000000, h000000, h000000, h000000, h000000, h000000, h000000,
+    
+                    h000000, h000000, hFF0000, hFF0000, h000000, hFF0000, h000000, h000000,
+                    h000000, h000000, hFF0000, h000000, hFF0000, hFF0000, h000000, h000000,
+    
+                    h000000, h000000, h000000, h000000, h000000, h000000, h000000, h000000,
+                    h000000, h000000, h000000, h000000, h000000, h000000, h000000, h000000,
+                    h000000, h000000, h000000, h000000, h000000, h000000, h000000, h000000,
+                    h000000, h000000, h000000, h000000, h000000, h000000, h000000, h000000};
+  */
+  
+   sig rst_n;                  // reset signal
+  
+  .clk(clk) {
+    // The reset conditioner is used to synchronize the reset signal to the FPGA
+    // clock. This ensures the entire FPGA comes out of reset at the same time.
+    reset_conditioner reset_cond;
+  }
+  
+  always {
+  
+    reset_cond.in = ~rst; // input raw inverted reset signal
+    rst_n = reset_cond.out;   // conditioned reset
+
+      
+    //blanks
+    led_colour.d[7:0] = 8x{{h000000}};
+    led_colour.d[16:8] = 9x{{h000000}};
+    led_colour.d[24:17] = 8x{{h000000}};
+    led_colour.d[32:25] = 8x{{h000000}};
+    led_colour.d[39:33] = 7x{{h000000}};
+    //first led
+    led_colour.d[B:A] = 2x{{h000000}};
+    led_colour.d[D:C] = 2x{{answer[0]}};
+    led_colour.d[E] = h000000;
+    led_colour.d[F] = LED_SEQUENCE[pointer][0];
+    led_colour.d[H:G] = 2x{{h000000}};
+    led_colour.d[J:I] = 2x{{h000000}};
+    led_colour.d[K] = LED_SEQUENCE[pointer][0];
+    led_colour.d[L] = h000000;
+    led_colour.d[N:M] = 2x{{answer[0]}};
+    led_colour.d[P:O] = 2x{{h000000}};
+    //blanks
+    led_colour.d[63:56] = 8x{{h000000}};
+    //second led
+    led_colour.d[B+24:A+24] = 2x{{h000000}};
+    led_colour.d[C+24] = LED_SEQUENCE[pointer][1];
+    led_colour.d[D+24] = h000000;
+    led_colour.d[F+24:E+24] =2x{{answer[1]}};
+    led_colour.d[H+24:G+24] = 2x{{h000000}};
+    led_colour.d[J+24:I+24] = 2x{{h000000}};
+    led_colour.d[L+24:K+24] = 2x{{answer[1]}};
+    led_colour.d[M+24] = h000000;
+    led_colour.d[N+24] = LED_SEQUENCE[pointer][1];
+    led_colour.d[P+24:O+24] = 2x{{h000000}};
+    //blank
+    led_colour.d[87:80] = 8x{{h000000}};
+    //third led
+    led_colour.d[B+48:A+48] = 2x{{h000000}};
+    led_colour.d[D+48:C+48] = 2x{{answer[2]}};
+    led_colour.d[E+48] = h000000;
+    led_colour.d[F+48] = LED_SEQUENCE[pointer][2];
+    led_colour.d[H+48:G+48] = 2x{{h000000}};
+    led_colour.d[J+48:I+48] = 2x{{h000000}};
+    led_colour.d[K+48] = LED_SEQUENCE[pointer][2];
+    led_colour.d[L+48] = h000000;
+    led_colour.d[N+48:M+48] = 2x{{answer[2]}};
+    led_colour.d[P+48:O+48] = 2x{{h000000}};
+    //blanks
+    led_colour.d[111:104] = 8x{{h000000}};
+    //fourth led
+    led_colour.d[B+72:A+72] = 2x{{h000000}};
+    led_colour.d[C+72] = LED_SEQUENCE[pointer][3];
+    led_colour.d[D+72] = h000000;
+    led_colour.d[F+72:E+72] =2x{{answer[3]}};
+    led_colour.d[H+72:G+72] = 2x{{h000000}};
+    led_colour.d[J+72:I+72] = 2x{{h000000}};
+    led_colour.d[L+72:K+72] = 2x{{answer[3]}};
+    led_colour.d[M+72] = h000000;
+    led_colour.d[N+72] = LED_SEQUENCE[pointer][3];
+    led_colour.d[P+72:O+72] = 2x{{h000000}};
+    //blanks
+    led_colour.d[135:128] = 8x{{h000000}};
+    //fifth led
+    led_colour.d[B+96:A+96] = 2x{{h000000}};
+    led_colour.d[D+96:C+96] = 2x{{answer[4]}};
+    led_colour.d[E+96] = h000000;
+    led_colour.d[F+96] = LED_SEQUENCE[pointer][4];
+    led_colour.d[H+96:G+96] = 2x{{h000000}};
+    led_colour.d[J+96:I+96] = 2x{{h000000}};
+    led_colour.d[K+96] = LED_SEQUENCE[pointer][4];
+    led_colour.d[L+96] = h000000;
+    led_colour.d[N+96:M+96] = 2x{{answer[4]}};
+    led_colour.d[P+96:O+96] = 2x{{h000000}};
+    //blanks
+    led_colour.d[159:152] = 8x{{h000000}};
+    //sixth led
+    led_colour.d[B+120:A+120] = 2x{{h000000}};
+    led_colour.d[C+120] = LED_SEQUENCE[pointer][5];
+    led_colour.d[D+120] = h000000;
+    led_colour.d[F+120:E+120] =2x{{answer[5]}};
+    led_colour.d[H+120:G+120] = 2x{{h000000}};
+    led_colour.d[J+120:I+120] = 2x{{h000000}};
+    led_colour.d[L+120:K+120] = 2x{{answer[5]}};
+    led_colour.d[M+120] = h000000;
+    led_colour.d[N+120] = LED_SEQUENCE[pointer][5];
+    led_colour.d[P+120:O+120] = 2x{{h000000}};
+    //blanks
+    led_colour.d[183:176] = 8x{{h000000}};
+    //seventh led
+    led_colour.d[B+144:A+144] = 2x{{h000000}};
+    led_colour.d[D+144:C+144] = 2x{{answer[6]}};
+    led_colour.d[E+144] = h000000;
+    led_colour.d[F+144] = LED_SEQUENCE[pointer][6];
+    led_colour.d[H+144:G+144] = 2x{{h000000}};
+    led_colour.d[J+144:I+144] = 2x{{h000000}};
+    led_colour.d[K+144] = LED_SEQUENCE[pointer][6];
+    led_colour.d[L+144] = h000000;
+    led_colour.d[N+144:M+144] = 2x{{answer[6]}};
+    led_colour.d[P+144:O+144] = 2x{{h000000}};
+    //blanks
+    led_colour.d[207:200] = 8x{{h000000}};
+    //eighth led
+    led_colour.d[B+168:A+168] = 2x{{h000000}};
+    led_colour.d[C+168] = LED_SEQUENCE[pointer][7];
+    led_colour.d[D+168] = h000000;
+    led_colour.d[F+168:E+168] =2x{{answer[7]}};
+    led_colour.d[H+168:G+168] = 2x{{h000000}};
+    led_colour.d[J+168:I+168] = 2x{{h000000}};
+    led_colour.d[L+168:K+168] = 2x{{answer[7]}};
+    led_colour.d[M+168] = h000000;
+    led_colour.d[N+168] = LED_SEQUENCE[pointer][7];
+    led_colour.d[P+168:O+168] = 2x{{h000000}};
+    //blanks
+    led_colour.d[231:224] = 8x{{h000000}};
+    led_colour.d[239:232] = 8x{{h000000}};
+    led_colour.d[247:240] = 8x{{h000000}};
+    led_colour.d[255:248] = 8x{{h000000}};
+    
+    led_seq = led_colour.q;  
+    
+}
+

@@ -1,0 +1,72 @@
+module au_top (
+    input clk,              // 100MHz clock
+    input rst_n,            // reset button (active low)
+    output led [8],         // 8 user controllable LEDs
+    input usb_rx,           // USB->Serial input
+    output usb_tx,          // USB->Serial output
+    output io_led [3][8],   // LEDs on IO Shield
+    output io_seg [8],      // 7-segment LEDs on IO Shield
+    output io_sel [4],      // Digit select on IO Shield
+    input io_button [5],    // 5 buttons on IO Shield
+    input io_dip [3][8]     // DIP switches on IO Shield
+  ) {
+  
+  sig rst;                  // reset signal
+  
+  seq_plus_twoSlow counterClock(.clk(clk), .rst(rst));
+  
+  main_fsm my_fsm(.clk(clk), .rst(io_button[3]));
+  
+  button_conditioner button_cond[3](.clk(clk));
+  edge_detector btn_detector[3](#RISE(1), #FALL(0), .clk(clk));
+ 
+  register regfile (.clk(clk), .rst(rst));
+  answer_seq answerSequence(.clk(clk), .rst(rst));
+  
+  .clk(clk) {
+    // The reset conditioner is used to synchronize the reset signal to the FPGA
+    // clock. This ensures the entire FPGA comes out of reset at the same time.
+    reset_conditioner reset_cond;
+  }
+  
+  always {
+    reset_cond.in = ~rst_n; // input raw inverted reset signal
+    rst = reset_cond.out;   // conditioned reset
+    
+    usb_tx = usb_rx;        // loop serial port
+    
+    led = 8h00;             // turn LEDs off
+    
+    io_led = 3x{{8h00}};    // turn LEDs off
+    io_seg = 8hff;          // turn segments off
+    io_sel = 4hf;           // select no digits
+    
+    // REGISTER ADDRESSES AND DATA 
+    regfile.read_address_a = my_fsm.read_address_a; // 4 bit 
+    regfile.read_address_b = my_fsm.read_address_b; // 4 bit 
+    regfile.we = my_fsm.we;                          // 1 bit 
+    regfile.write_address = my_fsm.write_address; // 4 bit 
+    regfile.data = my_fsm.write_data;         // 16 bit 
+    my_fsm.regA = regfile.out_a;             // 16 bit 
+    my_fsm.regB = regfile.out_b;            // 16 bit 
+    
+    // BUTTON TO CONTROL FSM
+    button_cond.in = io_button[2:0];
+    btn_detector.in = button_cond.out;
+    my_fsm.buttons = btn_detector.out; 
+  
+    // Counter Input to enter fsm
+    my_fsm.counter_input = counterClock.out;
+    
+    // Signal to start the clock counter only when the btn init is pressed 
+    counterClock.start_signal = my_fsm.start_clock_signal;
+    
+    my_fsm.randomGenSequence = answerSequence.out; 
+    io_led[0] = my_fsm.out[7:0];
+    //io_led[1] = answerSequence.out;
+    io_led[1] = my_fsm.out[15:8];
+    io_led[2] = my_fsm.out[23:16];
+   
+    
+  }
+}

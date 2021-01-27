@@ -1,0 +1,83 @@
+module decoder (
+    input clk,  // clock
+    input rst,  // reset
+    input sequence[16],
+    output led_sequence[8][24]
+  ) {
+  const B = hFF0000;
+  const R = h00FF00;
+  const G = h0000FF;
+  const BLANK = h000000;
+  
+  sig rst_n;
+  
+  .clk(clk) {
+    // The reset conditioner is used to synchronize the reset signal to the FPGA
+    // clock. This ensures the entire FPGA comes out of reset at the same time.
+    reset_conditioner reset_cond;
+  }
+  
+  always {
+    
+    reset_cond.in = ~rst; // input raw inverted reset signal
+    rst_n = reset_cond.out;   // conditioned reset
+    
+    case(sequence[15:14]){
+      b00:led_sequence[0] = BLANK;
+      b01:led_sequence[0] = R;
+      b10:led_sequence[0] = B;
+      b11:led_sequence[0] = G;
+      default: led_sequence[0] = BLANK;
+    }
+    case(sequence[13:12]){
+      b00:led_sequence[1] = BLANK;
+      b01:led_sequence[1] = R;
+      b10:led_sequence[1] = B;
+      b11:led_sequence[1] = G;
+      default: led_sequence[1] = BLANK;
+    }
+    case(sequence[11:10]){
+      b00:led_sequence[2] = BLANK;
+      b01:led_sequence[2] = R;
+      b10:led_sequence[2] = B;
+      b11:led_sequence[2] = G;
+      default: led_sequence[2] = BLANK;
+    }
+    case(sequence[9:8]){
+      b00:led_sequence[3] = BLANK;
+      b01:led_sequence[3] = R;
+      b10:led_sequence[3] = B;
+      b11:led_sequence[3] = G;
+      default: led_sequence[3] = BLANK;
+    }
+    case(sequence[7:6]){
+      b00:led_sequence[4] = BLANK;
+      b01:led_sequence[4] = R;
+      b10:led_sequence[4] = B;
+      b11:led_sequence[4] = G;
+      default: led_sequence[4] = BLANK;
+    }
+    case(sequence[5:4]){
+      b00:led_sequence[5] = BLANK;
+      b01:led_sequence[5] = R;
+      b10:led_sequence[5] = B;
+      b11:led_sequence[5] = G;        
+      default: led_sequence[5] = BLANK;
+    }
+    
+    case(sequence[3:2]){
+      b00:led_sequence[6] = BLANK;
+      b01:led_sequence[6] = R;
+      b10:led_sequence[6] = B;
+      b11:led_sequence[6] = G;
+      default: led_sequence[6] = BLANK;
+    }
+    case(sequence[1:0]){
+      b00:led_sequence[7] = BLANK;
+      b01:led_sequence[7] = R;
+      b10:led_sequence[7] = B;
+      b11:led_sequence[7] = G;
+      default: led_sequence[7] = BLANK;
+    }
+  }
+}

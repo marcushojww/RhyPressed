@@ -1,0 +1,75 @@
+module register (
+
+    input clk,  // clock
+    input rst,  // reset
+    input write_address[4], // write address
+    input we, // write enable
+    input data[16], // data in
+    
+    
+    input read_address_a[4], //address port a 
+    input read_address_b[4], //address port b
+    output out_a[16], //read port a
+    output out_b[16] //read port b 
+    
+  )
+     
+{
+  
+  .clk(clk){
+    .rst(rst){
+      
+      dff sequence1[16];
+      dff sequence2[16];
+      dff sequence_copy[16];
+      dff counter[16];
+      dff game_over[16];
+      dff score[16];
+      
+
+    }
+  }
+
+  always {
+    
+    //write port
+    if (we){
+      case(write_address){
+      
+        b0000 : sequence1.d = data; //reg0
+        b0001 : sequence2.d = data; //reg1
+        b0010 : sequence_copy.d = data; //reg2
+        b0011 : counter.d = data; //reg3
+        b0111 : game_over.d = data; //reg7
+        b1000 : score.d = data; //reg8
+        
+      }
+    }
+    
+    //read port a
+    case(read_address_a){
+    
+        b0000 : out_a = sequence1.q;
+        b0001 : out_a = sequence2.q;
+        b0010 : out_a = sequence_copy.q;
+        b0011 : out_a = counter.q;
+        b0111 : out_a = game_over.q;
+        b1000 : out_a = score.q;
+        default : out_a = 0;
+    }
+    
+    //read port b
+    case(read_address_b){
+    
+        b0000 : out_b = sequence1.q;
+        b0001 : out_b = sequence2.q;
+        b0010 : out_b = sequence_copy.q;
+        b0011 : out_b = counter.q;
+        b0111 : out_b = game_over.q;
+        b1000 : out_b = score.q;
+        default : out_b = 0;
+    }
+    
+  }
+  
+}
